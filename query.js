@@ -66,6 +66,21 @@ const empAddQuestions = [
     }
 ];
 
+const empUpdateQuestions = [
+    {
+        type: 'list',
+        message: 'What employee is changing roles?',
+        name: 'employee',
+        choices: []
+    },
+    {
+        type: 'list',
+        message: 'What is this employee\'s new role?',
+        name: 'role',
+        choices: []
+    }
+];
+
 // select different choices from menu
 function menuChoices() {
     inquirer
@@ -79,7 +94,6 @@ function menuChoices() {
                     viewAllRoles();
                     break;
                 case 'View All Employees':
-                    console.log('View All Employees');
                     viewAllEmp();
                     break;
                 case 'Add A Department':
@@ -92,7 +106,8 @@ function menuChoices() {
                     gatherRoleForEmp();
                     break;
                 case 'Update Employee Role':
-                    console.log('Update Employee Role');
+                    gatherRoleForUpdate();
+                    break;
             }
         })
 };
@@ -137,6 +152,25 @@ function inqEmpAdd(emps, roles) {
     .prompt(empAddQuestions)
     .then(({ first_name, last_name, roles, managers }) => {
         addEmp(first_name, last_name, roles, managers);
+    });
+}
+
+// update EMP inquirer 
+function inqEmpUpdate(emps, roles) {
+    empUpdateQuestions[0].choices = [];
+    empUpdateQuestions[1].choices = [];
+ 
+    emps.forEach(emp => {
+        empUpdateQuestions[0].choices.push(emp.first_name.concat("_").concat(emp.last_name).concat("_").concat(emp.id));
+    });
+    roles.forEach(role => {
+        empUpdateQuestions[1].choices.push(role.title.concat("_").concat(role.id))
+    });
+    
+    inquirer
+    .prompt(empUpdateQuestions)
+    .then(({ employee, role }) => {
+        updateEmp(employee, role);
     });
 }
 
@@ -215,18 +249,18 @@ function addEmp(first_name, last_name, roles, managers) {
 }
 
 // UPDATE query
-function updateEmp() {
+function updateEmp(employee, role) {
+
     const sql = `UPDATE employee SET role_id = ?
                  WHERE id = ?`
-    const params = ["4", "7"];
+    const params = [role.charAt(role.length-1), employee.charAt(employee.length-1)];
+    console.log(params);
 
     db.promise().query(sql, params)
     .then( ([rows,fields]) => {
-        console.table(rows);
+        console.log(rows);
+        menuChoices();
     })
-    .catch(console.log)
-    // cancels db connection
-    .then( () => db.end());    
 }
 
 // READ department names for ADD ROLE
@@ -239,7 +273,7 @@ function gatherDeptForRole() {
     })
 }
 
-// READ department names for ADD EMPLOYEE
+// READ role names for ADD EMPLOYEE
 function gatherRoleForEmp() {
     const sql = `SELECT role.title, role.id FROM role`;
     
@@ -256,6 +290,26 @@ function gahterEmpForEmp(roles) {
     db.promise().query(sql)
     .then( ([rows,fields]) => {
         inqEmpAdd(rows, roles);
+    })    
+}
+
+// Read role names for UPDATE EMPLOYEE
+function gatherRoleForUpdate() {
+    const sql = `SELECT role.title, role.id FROM role`;
+    
+    db.promise().query(sql)
+    .then( ([rows,fields]) => {
+        gatherEmpForUpdate(rows);
+    })
+}
+
+// Read employee names for UPDATE EMPLOYEE
+function gatherEmpForUpdate(roles) {
+    const sql = `SELECT employee.first_name, employee.last_name, employee.id FROM employee`;
+    
+    db.promise().query(sql)
+    .then( ([rows,fields]) => {
+        inqEmpUpdate(rows, roles);
     })    
 }
 
